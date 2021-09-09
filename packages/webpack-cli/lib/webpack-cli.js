@@ -29,6 +29,7 @@ class WebpackCLI {
         let result;
 
         try {
+            // 获取配置文件中的配置对象
             result = require(module);
         } catch (error) {
             let previousModuleCompile;
@@ -720,6 +721,15 @@ class WebpackCLI {
         }
     }
 
+    /**
+     * args 数据示例
+        [
+            '/usr/local/Cellar/node/16.6.1/bin/node',
+            '/Users/herman/private/examples/webpack-code/node_modules/.bin/webpack',
+            '--config',
+            './config/webpack.prod.config.js'
+        ]
+    */
     async run(args, parseOptions) {
         // Built-in internal commands
         const buildCommandOptions = {
@@ -1480,6 +1490,7 @@ class WebpackCLI {
             let commandOperands = operands.slice(1);
 
             if (isKnownCommand(commandToRun)) {
+                // 执行yarn build 入口
                 await loadCommandByName(commandToRun, true);
             } else {
                 const isEntrySyntax = fs.existsSync(operand);
@@ -1518,14 +1529,22 @@ class WebpackCLI {
             });
         });
 
+        
         await this.program.parseAsync(args, parseOptions);
     }
 
+    /**
+     * 加载配置文件 webpack.config.js
+     * @param {*} configPath 
+     * @param {*} argv 
+     * @returns 
+     */
     async loadConfig(configPath, argv = {}) {
         const { interpret } = this.utils;
         const ext = path.extname(configPath);
         const interpreted = Object.keys(interpret.jsVariants).find((variant) => variant === ext);
 
+        // 配置文件扩展名处理
         if (interpreted) {
             const { rechoir } = this.utils;
 
@@ -1604,9 +1623,11 @@ class WebpackCLI {
     async resolveConfig(options) {
         const config = { options: {}, path: new WeakMap() };
 
+        // options.config就是命令行中配置的config文件路径
         if (options.config && options.config.length > 0) {
             const loadedConfigs = await Promise.all(
                 options.config.map((configPath) =>
+                    // path.resolve(configPath) 配合当前工作目录生成绝对路径
                     this.loadConfig(path.resolve(configPath), options.argv),
                 ),
             );
@@ -1638,6 +1659,7 @@ class WebpackCLI {
                         config.path.set(options, loadedConfig.path);
                     });
                 } else {
+                    // loadedConfig.path 绝对路径
                     config.path.set(loadedConfig.options, loadedConfig.path);
                 }
             });
@@ -1765,6 +1787,7 @@ class WebpackCLI {
     // TODO refactor
     async applyOptions(config, options) {
         if (options.analyze) {
+            // webpack-cli增加体积分析的配置
             if (!this.utils.packageExists("webpack-bundle-analyzer")) {
                 const { promptInstallation, colors } = this.utils;
 
@@ -1883,6 +1906,7 @@ class WebpackCLI {
 
             const setupDefaultOptions = (configOptions) => {
                 // No need to run for webpack@4
+                // 配置文件路径缓存处理
                 if (configOptions.cache && configOptions.cache.type === "filesystem") {
                     const configPath = config.path.get(configOptions);
 
@@ -2041,6 +2065,8 @@ class WebpackCLI {
                 options.plugins = [];
             }
 
+            // 插件列表队头插入一个plugin
+            // 可以参考CLIPlugin的方式来自定义plugin
             options.plugins.unshift(
                 new CLIPlugin({
                     configPath: config.path.get(options),
@@ -2082,14 +2108,17 @@ class WebpackCLI {
     async createCompiler(options, callback) {
         this.applyNodeEnv(options);
 
+        // 加载构建用的配置文件
         let config = await this.resolveConfig(options);
 
+        // 额外增加一些配置，有一些是处理兼容性问题的
         config = await this.applyOptions(config, options);
         config = await this.applyCLIPlugin(config, options);
 
         let compiler;
 
         try {
+            // 构建开始
             compiler = this.webpack(
                 config.options,
                 callback
