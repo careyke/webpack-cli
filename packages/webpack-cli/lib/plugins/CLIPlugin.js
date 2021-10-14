@@ -1,3 +1,8 @@
+/**
+ * 处理一些脚手架相关的配置参数
+ * 这些特性是实际应用中常常会用上，由脚手架层来提供支持，方便开发者使用
+ * 比如：体积分析，资源预加载，热更新等等
+ */
 class CLIPlugin {
     constructor(options) {
         this.options = options;
